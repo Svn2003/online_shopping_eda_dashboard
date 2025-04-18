@@ -265,10 +265,16 @@ if df is not None:
     )
 
     # -------- SAVE TO MYSQL --------
+    import socket
+    hostname = socket.gethostname()
+    is_local = hostname == "localhost" or "streamlit" not in hostname
+
     st.header("🛠️ Save Data to MySQL")
     save_to_db = st.checkbox("💾 Save uploaded CSV and insights to MySQL")
 
-    if save_to_db:
+    if save_to_db and not is_local:
+        st.warning("🚫 MySQL export is disabled on deployed web version. Only works when running locally.")
+    elif save_to_db:
         host = st.text_input("Host", "localhost")
         user = st.text_input("User", "root")
         password = st.text_input("Password", type="password")
@@ -305,6 +311,48 @@ if df is not None:
 
             except Exception as e:
                 st.error(f"❌ MySQL Error: {e}")
+
+    # # -------- SAVE TO MYSQL --------
+    # st.header("🛠️ Save Data to MySQL")
+    # save_to_db = st.checkbox("💾 Save uploaded CSV and insights to MySQL")
+
+    # if save_to_db:
+    #     host = st.text_input("Host", "localhost")
+    #     user = st.text_input("User", "root")
+    #     password = st.text_input("Password", type="password")
+    #     db = st.text_input("Database", "csv_analyzer")
+    #     table = st.text_input("Table Name", "uploaded_data")
+
+    #     if st.button("Upload to MySQL"):
+    #         try:
+    #             encoded_pw = urllib.parse.quote_plus(password)
+    #             engine = create_engine(f"mysql+pymysql://{user}:{encoded_pw}@{host}/{db}")
+
+    #             df.to_sql(table, con=engine, index=False, if_exists='replace')
+
+    #             summary = df.describe(include='all').transpose().reset_index()
+    #             summary.columns = ['Feature'] + list(summary.columns[1:])
+    #             summary.to_sql(f"{table}_summary", con=engine, index=False, if_exists='replace')
+
+    #             if not missing.empty:
+    #                 mv = missing.reset_index()
+    #                 mv.columns = ['Column', 'MissingCount']
+    #                 mv.to_sql(f"{table}_missing", con=engine, index=False, if_exists='replace')
+
+    #             if not corr.empty:
+    #                 corr_long = corr.stack().reset_index()
+    #                 corr_long.columns = ['Feature1', 'Feature2', 'Correlation']
+    #                 corr_long.to_sql(f"{table}_correlation", con=engine, index=False, if_exists='replace')
+
+    #             if len(numeric_cols) > 0:
+    #                 stat_data.to_sql(f"{table}_stats", con=engine, index=False, if_exists='replace')
+
+    #             quick_info.to_sql(f"{table}_features", con=engine, index=False, if_exists='replace')
+
+    #             st.success("✅ Data and insights saved to MySQL successfully!")
+
+    #         except Exception as e:
+    #             st.error(f"❌ MySQL Error: {e}")
 
 
 
