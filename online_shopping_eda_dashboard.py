@@ -104,15 +104,50 @@ st.markdown("""
 
 
 
-# -------------- FILE OR URL INPUT -------------------
-uploaded_file = st.file_uploader("📁 Upload a CSV file", type=["csv"])
+st.markdown("### 📁 Upload CSV, Provide URL, or Use Demo Data")
+
+# File upload and URL input
+uploaded_file = st.file_uploader("Upload your CSV file", type=["csv"])
 url_input = st.text_input("🌐 Or enter a public URL (CSV or JSON API)")
+
+# Inject custom CSS for blue and centered button
+st.markdown("""
+    <style>
+    .centered-button {
+        display: flex;
+        justify-content: center;
+        margin-top: 0px;
+        margin-bottom: 20px;
+    }
+    .stButton > button {
+        background-color: #007bff;
+        color: white;
+        border: none;
+        padding: 12px 24px;
+        border-radius: 6px;
+        font-size: 16px;
+        cursor: pointer;
+        transition: background-color 0.3s ease;
+    }
+    .stButton > button:hover {
+        background-color: #0056b3;
+    }
+    </style>
+""", unsafe_allow_html=True)
+
+# Center the button using a styled container
+st.markdown('<div class="centered-button">', unsafe_allow_html=True)
+demo_clicked = st.button("📊 Use Demo Dataset")
+st.markdown('</div>', unsafe_allow_html=True)
+
 df = None
 
+# ---------------------- Handling Uploaded File ----------------------
 if uploaded_file:
     df = pd.read_csv(uploaded_file)
     st.success("✅ File uploaded successfully!")
 
+# ---------------------- Handling URL Input ----------------------
 elif url_input:
     try:
         response = requests.get(url_input)
@@ -132,8 +167,25 @@ elif url_input:
     except Exception as e:
         st.error(f"⚠️ Error fetching data: {e}")
 
+# ---------------------- Handling Demo Data ----------------------
+elif demo_clicked:
+    demo_url = "https://raw.githubusercontent.com/Svn2003/online_shopping_eda_dashboard/refs/heads/main/online_shoppers_intention.csv"
+    try:
+        df = pd.read_csv(demo_url)
+        st.success("✅ Demo dataset loaded successfully!")
+    except Exception as e:
+        st.error(f"❌ Failed to load demo data: {e}")
+
+
+
 # ------------------- MAIN ANALYSIS -------------------
 if df is not None:
+    # Add friendly labels for 'Revenue' column
+    # Ensure 'Revenue' is boolean and create a user-friendly label column
+    if "Revenue" in df.columns:
+        df["Revenue"] = df["Revenue"].astype(str).str.lower().map({"true": True, "false": False})
+        df["Revenue_Label"] = df["Revenue"].replace({True: "Purchased", False: "Not Purchased"})
+
     st.session_state["df"] = df
 
     st.header("🔍 Dataset Overview")
@@ -212,13 +264,13 @@ if df is not None:
         with col3:
             if 'VisitorType' in df.columns:
                 st.subheader("Visitor Type vs Revenue")
-                fig = px.histogram(df, x='VisitorType', color='Revenue')
+                fig = px.histogram(df, x='VisitorType', color='Revenue_Label')
                 st.plotly_chart(fig, use_container_width=True)
 
         with col4:
             if 'Month' in df.columns:
                 st.subheader("Month vs Revenue")
-                fig = px.histogram(df, x='Month', color='Revenue')
+                fig = px.histogram(df, x='Month', color='Revenue_Label')
                 st.plotly_chart(fig, use_container_width=True)
 
         # -------- TAKEAWAYS --------
@@ -248,14 +300,57 @@ if df is not None:
 
 
     # -------- DOWNLOAD FINAL FILE --------
-    def sanitize_dataframe(df):
-        return df.applymap(lambda x: str(x) if isinstance(x, dict) else x)
+    # Sanitize dataframe before download
+def sanitize_dataframe(df):
+    return df.applymap(lambda x: str(x) if isinstance(x, dict) else x)
 
+# Inject custom style for download button too
+st.markdown("""
+    <style>
+    .centered-button {
+        display: flex;
+        justify-content: center;
+        margin-top: 20px;
+        margin-bottom: 20px;
+    }
+    .stDownloadButton > button {
+        background-color: #d9534f;
+        color: #ffffff;
+        font-weight: bold;
+        border: none;
+        padding: 12px 28px;
+        border-radius: 8px;
+        font-size: 16px;
+        box-shadow: 0px 4px 10px rgba(0, 0, 0, 0.2);
+        cursor: pointer;
+        transition: all 0.3s ease;
+    }
+    .stDownloadButton > button:hover {
+        background-color: #c9302c;
+        transform: translateY(-1px);
+    }
+    </style>
+""", unsafe_allow_html=True)
+
+# Show only if dataframe exists
+if df is not None:
+    st.markdown('<div class="centered-button">', unsafe_allow_html=True)
     st.download_button(
-        label="⬇️ Download Final Data",
+        label="⬇️Download Final Data",
         data=sanitize_dataframe(df).to_csv(index=False).encode(),
-        file_name="final_data.csv"
+        file_name="final_data.csv",
+        mime='text/csv'
     )
+    st.markdown('</div>', unsafe_allow_html=True)
+
+    # def sanitize_dataframe(df):
+    #     return df.applymap(lambda x: str(x) if isinstance(x, dict) else x)
+
+    # st.download_button(
+    #     label="⬇️ Download Final Data",
+    #     data=sanitize_dataframe(df).to_csv(index=False).encode(),
+    #     file_name="final_data.csv"
+    # )
 
     # # -------- SAVE TO MYSQL --------
     # import socket
