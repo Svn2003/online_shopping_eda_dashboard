@@ -7,8 +7,10 @@ import urllib.parse
 import pymysql
 from sqlalchemy import create_engine
 
-st.set_page_config(page_title="📊 Smart CSV Analyzer", layout="wide")
 
+st.set_page_config(page_title="📊 Smart Customer Behavior Analyzer", layout="wide")
+
+# -------------- HERO SECTION -------------------
 st.markdown("""
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Roboto:wght@400;700&display=swap');
@@ -85,11 +87,45 @@ st.markdown("""
 .cta-button:hover {
   transform: scale(1.05);
 }
-
+.centered-button {
+    display: flex;
+    justify-content: center;
+    margin-top: 20px;
+    margin-bottom: 20px;
+}
+.stButton > button {
+    background-color: #007bff;
+    color: white;
+    border: none;
+    padding: 12px 24px;
+    border-radius: 6px;
+    font-size: 16px;
+    cursor: pointer;
+    transition: background-color 0.3s ease;
+}
+.stButton > button:hover {
+    background-color: #0056b3;
+}
+.stDownloadButton > button {
+    background-color: #d9534f;
+    color: #ffffff;
+    font-weight: bold;
+    border: none;
+    padding: 12px 28px;
+    border-radius: 8px;
+    font-size: 16px;
+    box-shadow: 0px 4px 10px rgba(0, 0, 0, 0.2);
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+.stDownloadButton > button:hover {
+    background-color: #c9302c;
+    transform: translateY(-1px);
+}
 </style>
 
 <div class="hero">
-    <h1>Welcome to the Smart Analyzer</h1>
+    <h1>Welcome to the Smart Customer Behavior Analyzer!</h1>
     <p>This smart tool helps you analyze and export data quickly & efficiently:</p>
     <ul>
         <ul class="text-left space-y-2 text-lg sm:text-xl">
@@ -97,33 +133,44 @@ st.markdown("""
         <li>🧹 Handle missing values</li>
         <li>📉 Detect outliers</li>
         <li>📊 Analyze trends</li>
-        <li>🛠️ Export cleaned data to MySQL</li>
     </ul>
 </div>
 """, unsafe_allow_html=True)
 
-
-
 st.markdown("### 📁 Upload CSV, Provide URL, or Use Demo Data")
 
-# File upload and URL input
+# Upload Section
 uploaded_file = st.file_uploader("Upload your CSV file", type=["csv"])
+
+# URL Section
 url_input = st.text_input("🌐 Or enter a public URL (CSV or JSON API)")
 
-# Inject custom CSS for blue and centered button
+# Small message and button directly below the URL input (same style)
+demo_message = st.markdown(
+    """
+    <p style='margin-top: -10px; font-size: 14px;'>
+        👉 Or click the Demo Dataset button to view sample data
+    </p>
+    """,
+    unsafe_allow_html=True
+)
+
+demo_clicked = st.button("📊 Use Demo Dataset", key="demo")
+
+# Blue demo button style
 st.markdown("""
     <style>
     .centered-button {
         display: flex;
         justify-content: center;
-        margin-top: 0px;
-        margin-bottom: 20px;
+        margin-top: 1px;
+        margin-bottom: 1px;
     }
     .stButton > button {
         background-color: #007bff;
         color: white;
         border: none;
-        padding: 12px 24px;
+        padding: 6px 12px;
         border-radius: 6px;
         font-size: 16px;
         cursor: pointer;
@@ -135,19 +182,18 @@ st.markdown("""
     </style>
 """, unsafe_allow_html=True)
 
-# Center the button using a styled container
-st.markdown('<div class="centered-button">', unsafe_allow_html=True)
-demo_clicked = st.button("📊 Use Demo Dataset")
-st.markdown('</div>', unsafe_allow_html=True)
-
+# -------------- LOAD DATA --------------
 df = None
 
-# ---------------------- Handling Uploaded File ----------------------
+if "df" not in st.session_state:
+    st.session_state["df"] = None
+
 if uploaded_file:
     df = pd.read_csv(uploaded_file)
+    st.session_state["df"] = df
+    st.session_state["source"] = "uploaded"
     st.success("✅ File uploaded successfully!")
 
-# ---------------------- Handling URL Input ----------------------
 elif url_input:
     try:
         response = requests.get(url_input)
@@ -155,27 +201,41 @@ elif url_input:
             content_type = response.headers.get("Content-Type", "")
             if "text/csv" in content_type or url_input.endswith(".csv"):
                 df = pd.read_csv(url_input)
-                st.success("✅ CSV loaded from URL!")
             elif "application/json" in content_type:
                 data = response.json()
                 df = pd.DataFrame(data)
-                st.success("✅ JSON API loaded and converted to table!")
             else:
                 st.error("⚠️ Unsupported content type.")
+            st.session_state["df"] = df
+            st.session_state["source"] = "url"
+            st.success("✅ Data loaded from URL!")
         else:
             st.error(f"⚠️ Failed to fetch data. Status code: {response.status_code}")
     except Exception as e:
         st.error(f"⚠️ Error fetching data: {e}")
 
-# ---------------------- Handling Demo Data ----------------------
 elif demo_clicked:
-    demo_url = "https://raw.githubusercontent.com/Svn2003/online_shopping_eda_dashboard/refs/heads/main/online_shoppers_intention.csv"
     try:
+        demo_url = "https://raw.githubusercontent.com/Svn2003/online_shopping_eda_dashboard/main/online_shoppers_intention.csv"
         df = pd.read_csv(demo_url)
+        st.session_state["df"] = df
+        st.session_state["source"] = "demo"
         st.success("✅ Demo dataset loaded successfully!")
     except Exception as e:
         st.error(f"❌ Failed to load demo data: {e}")
 
+# Load from session only if not uploaded freshly this time
+if st.session_state["df"] is not None and df is None:
+    df = st.session_state["df"]
+
+# -------------- SHOW RESET BUTTON ONLY IF DATA EXISTS --------------
+if st.session_state["df"] is not None:
+    # st.markdown('<div class="centered-button">', unsafe_allow_html=True)
+    if st.button("❌ Clear Data & Reset", key="reset"):
+        st.session_state.clear()
+        st.experimental_set_query_params()
+        st.rerun()
+    st.markdown('</div>', unsafe_allow_html=True)
 
 
 # ------------------- MAIN ANALYSIS -------------------
@@ -225,6 +285,10 @@ if df is not None:
 
     # -------- CORRELATION --------
     st.header("🔥 Feature Correlation (Numerical Only)")
+    st.markdown(
+    "<p style='font-size: 15px;'>   (This shows how strongly different number-based columns are related to each other.)</p>",
+    unsafe_allow_html=True
+    )
     corr = df.corr(numeric_only=True)
     if not corr.empty:
         fig = px.imshow(corr, text_auto=True, color_continuous_scale='RdBu_r', aspect="auto")
@@ -234,6 +298,10 @@ if df is not None:
 
     # -------- SHAPE STATS --------
     st.header("🧠 Skewness & Kurtosis")
+    st.markdown(
+    "<p style='font-size: 15px;'>   (This shows whether each feature's values evenly spread (Skewness) and how peaked or flat their distribution is (Kurtosis)).</p>",
+    unsafe_allow_html=True
+    )
     numeric_cols = df.select_dtypes(include=np.number).columns
     if len(numeric_cols) > 0:
         stat_data = pd.DataFrame({
@@ -343,14 +411,7 @@ if df is not None:
     )
     st.markdown('</div>', unsafe_allow_html=True)
 
-    # def sanitize_dataframe(df):
-    #     return df.applymap(lambda x: str(x) if isinstance(x, dict) else x)
-
-    # st.download_button(
-    #     label="⬇️ Download Final Data",
-    #     data=sanitize_dataframe(df).to_csv(index=False).encode(),
-    #     file_name="final_data.csv"
-    # )
+ 
 
     # # -------- SAVE TO MYSQL --------
     # import socket
