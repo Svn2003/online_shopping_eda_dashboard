@@ -14,7 +14,7 @@
 
 ## 🚀 Features
 
-- ✅ Clean and modern dark-themed UI
+- ✅ Clean and modern UI
 - 📈 Auto-summary of numerical and categorical columns
 - 🔥 Feature correlation heatmap
 - 🧠 Skewness & kurtosis stats
