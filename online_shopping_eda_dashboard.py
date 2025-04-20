@@ -132,7 +132,8 @@ st.markdown("""
         <li>📂 Upload your CSV or Excel files</li>
         <li>🧹 Handle missing values</li>
         <li>📉 Detect outliers</li>
-        <li>📊 Analyze trends</li>
+        <li>📊 Visualize patterns, correlations, and summary stats</li>
+        <li>🎯 Analyze trends</li>
     </ul>
 </div>
 """, unsafe_allow_html=True)
